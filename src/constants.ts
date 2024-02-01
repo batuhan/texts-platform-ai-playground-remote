@@ -10,7 +10,3 @@ export enum Api {
 export const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
 };
-
-export const DEFAULT_OPTIONS = {
-  headers: DEFAULT_HEADERS,
-};

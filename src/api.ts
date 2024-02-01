@@ -21,7 +21,7 @@ import {
   User,
 } from "@textshq/platform-sdk";
 import { randomUUID as uuid } from "crypto";
-import { Api, DEFAULT_HEADERS, DEFAULT_OPTIONS } from "./constants";
+import { Api, DEFAULT_HEADERS } from "./constants";
 import WebSocket from "ws";
 
 export default class PlatformRemote implements PlatformAPI {
