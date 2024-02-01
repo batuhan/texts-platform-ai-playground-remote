@@ -110,46 +110,46 @@ export default class PlatformRemote implements PlatformAPI {
     }
 
     const body = JSON.stringify({ pagination });
-    const { data } = await this.fetchRemote(Api.GET_THREADS, body);
-    const items: Thread[] = data.map((thread: Thread) => {
-      return {
-        ...thread,
-        timestamp: new Date(thread.timestamp),
-        createdAt: new Date(thread.createdAt),
-        messages: {
-          items: thread.messages.items.map((message: Message) => {
-            return {
-              ...message,
-              timestamp: new Date(message.timestamp),
-            };
-          }),
-          hasMore: thread.messages.hasMore,
-        },
-      };
-    });
+    const { data }: { data: PaginatedWithCursors<Thread> } =
+      await this.fetchRemote(Api.GET_THREADS, body);
 
     return {
-      items,
-      hasMore: false,
-      oldestCursor: "0",
+      items: data.items.map((thread: Thread) => {
+        return {
+          ...thread,
+          timestamp: new Date(thread.timestamp),
+          createdAt: new Date(thread.createdAt),
+          messages: {
+            items: thread.messages.items.map((message: Message) => {
+              return {
+                ...message,
+                timestamp: new Date(message.timestamp),
+              };
+            }),
+            hasMore: thread.messages.hasMore,
+          },
+        };
+      }),
+      ...data,
     };
   };
 
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
-    console.log(threadID);
     const body = JSON.stringify({ threadID, pagination });
-    console.log(body);
 
-    const { data } = await this.fetchRemote(Api.GET_MESSAGES, body);
-    const items: Message[] = data.map((message: Message) => {
-      return {
-        ...message,
-        timestamp: new Date(message.timestamp),
-      };
-    });
+    const { data }: { data: Paginated<Message> } = await this.fetchRemote(
+      Api.GET_MESSAGES,
+      body
+    );
+
     return {
-      items,
-      hasMore: false,
+      items: data.items.map((message: Message) => {
+        return {
+          ...message,
+          timestamp: new Date(message.timestamp),
+        };
+      }),
+      hasMore: data.hasMore,
     };
   };
 
@@ -259,7 +259,6 @@ export default class PlatformRemote implements PlatformAPI {
     // Manage incoming server events
     this.websocket.onmessage = (event) => {
       console.log("[platform-rest] recieved event");
-      console.log(event.data);
       const eventJSON = JSON.parse(event.data.toString());
 
       const serverEvent: StateSyncEvent = {
