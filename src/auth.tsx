@@ -5,10 +5,11 @@ import type { AuthProps } from "@textshq/platform-sdk";
 export const Auth: React.FC<AuthProps> = ({ login }) => {
   const [baseURL, setBaseURL] = useState<string>("http://localhost:8080");
   const [label, setLabel] = useState<string>("Test");
+  const [credential, setCredential] = useState<string>("");
 
   const handleLogin = () => {
     if (login) {
-      login({ custom: { label, baseURL } });
+      login({ custom: { label, baseURL, credential } });
     }
   };
 
@@ -25,7 +26,7 @@ export const Auth: React.FC<AuthProps> = ({ login }) => {
           marginBottom: "20px",
         }}
       >
-        {/* <div
+        <div
           style={{
             width: "70%",
           }}
@@ -50,6 +51,23 @@ export const Auth: React.FC<AuthProps> = ({ login }) => {
           }}
         >
           <label htmlFor="label" style={{ width: "90%" }}>
+            Credential (optional)
+          </label>
+          <input
+            id="label"
+            type="text"
+            value={label}
+            onChange={(event) => setCredential(event.target.value)}
+            style={{ width: "100%" }}
+            placeholder="A Key, Password, Access Token your Rest Server needs."
+          />
+        </div>
+        <div
+          style={{
+            width: "70%",
+          }}
+        >
+          <label htmlFor="label" style={{ width: "90%" }}>
             Label (optional)
           </label>
           <input
@@ -60,7 +78,7 @@ export const Auth: React.FC<AuthProps> = ({ login }) => {
             style={{ width: "100%" }}
             placeholder="Work, Personal, etc."
           />
-        </div> */}
+        </div>
         <div
           style={{
             width: "70%",

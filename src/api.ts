@@ -23,6 +23,7 @@ import {
 import { randomUUID as uuid } from "crypto";
 import { Api, DEFAULT_HEADERS } from "./constants";
 import WebSocket from "ws";
+import { ResponseMessage, ResponseThread } from "./types";
 
 export default class PlatformRemote implements PlatformAPI {
   private baseURL: string = "";
@@ -31,6 +32,7 @@ export default class PlatformRemote implements PlatformAPI {
     username: "User",
     displayText: "User",
   };
+  private credential: string = "";
   private eventHandler: OnServerEventCallback;
   private websocket: WebSocket;
 
@@ -38,6 +40,7 @@ export default class PlatformRemote implements PlatformAPI {
     if (session) {
       this.baseURL = session.baseURL;
       this.currentUser = session.currentUser;
+      this.credential = session.credential;
       const url = new URL(session.baseURL);
       const wsUrl = `ws://${url.host}`;
       this.initWebsocket(wsUrl);
@@ -50,7 +53,7 @@ export default class PlatformRemote implements PlatformAPI {
 
   getCurrentUser = () => this.currentUser;
 
-  login = (creds?: LoginCreds): LoginResult => {
+  login = async (creds?: LoginCreds): Promise<LoginResult> => {
     const loginCreds =
       creds && "custom" in creds && creds.custom && creds.custom.baseURL;
 
@@ -63,13 +66,12 @@ export default class PlatformRemote implements PlatformAPI {
 
       const wsUrl = `ws://${baseURL.host}`;
       this.initWebsocket(wsUrl);
-
-      const displayText = `Remote WS`;
-      this.currentUser = {
-        id: "1",
-        username: "User",
-        displayText,
-      };
+      const body = JSON.stringify({ creds: creds });
+      const { data }: { data: CurrentUser } = await this.fetchRemote(
+        Api.LOGIN,
+        body
+      );
+      this.currentUser = data;
     } catch {
       return { type: "error", errorMessage: "Invalid credentials" };
     }
@@ -81,6 +83,7 @@ export default class PlatformRemote implements PlatformAPI {
     return {
       baseURL: this.baseURL,
       currentUser: this.currentUser,
+      credential: this.credential,
     };
   };
 
@@ -90,6 +93,8 @@ export default class PlatformRemote implements PlatformAPI {
 
   searchUsers = async (typed: string) => {
     const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
       typed,
     });
     const response = await this.fetchRemote(Api.SEARCH_USERS, body);
@@ -109,46 +114,68 @@ export default class PlatformRemote implements PlatformAPI {
       };
     }
 
-    const body = JSON.stringify({ pagination });
-    const { data }: { data: PaginatedWithCursors<Thread> } =
+    const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
+      inboxName,
+      pagination,
+    });
+    const { data }: { data: PaginatedWithCursors<ResponseThread> } =
       await this.fetchRemote(Api.GET_THREADS, body);
 
-    return {
-      items: data.items.map((thread: Thread) => {
-        return {
-          ...thread,
-          timestamp: new Date(thread.timestamp),
-          createdAt: new Date(thread.createdAt),
-          messages: {
-            items: thread.messages.items.map((message: Message) => {
-              return {
-                ...message,
-                timestamp: new Date(message.timestamp),
-              };
-            }),
-            hasMore: thread.messages.hasMore,
-          },
-        };
-      }),
-      ...data,
+    const responseThreads = data.items;
+
+    // Map the Date strings from response data to the platform-sdk Thread type
+    const threads = responseThreads.map((thread: ResponseThread) => {
+      const newThread: Thread = {
+        ...thread,
+        timestamp: new Date(thread.timestamp),
+        createdAt: new Date(thread.createdAt),
+        messages: {
+          items: thread.messages.items.map((message: ResponseMessage) => {
+            return {
+              ...message,
+              timestamp: new Date(message.timestamp),
+            };
+          }),
+          hasMore: thread.messages.hasMore,
+        },
+      };
+      return newThread;
+    });
+
+    const mappedData: PaginatedWithCursors<Thread> = {
+      items: threads,
+      hasMore: data.hasMore,
+      oldestCursor: data.oldestCursor,
     };
+
+    return mappedData;
   };
 
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
-    const body = JSON.stringify({ threadID, pagination });
+    const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
+      threadID,
+      pagination,
+    });
 
-    const { data }: { data: Paginated<Message> } = await this.fetchRemote(
-      Api.GET_MESSAGES,
-      body
-    );
+    const { data }: { data: Paginated<ResponseMessage> } =
+      await this.fetchRemote(Api.GET_MESSAGES, body);
 
-    return {
-      items: data.items.map((message: Message) => {
+    const responseMessages: ResponseMessage[] = data.items;
+    const messages: Message[] = responseMessages.map(
+      (message: ResponseMessage) => {
         return {
           ...message,
           timestamp: new Date(message.timestamp),
         };
-      }),
+      }
+    );
+
+    return {
+      items: messages,
       hasMore: data.hasMore,
     };
   };
@@ -159,6 +186,8 @@ export default class PlatformRemote implements PlatformAPI {
     messageText?: string
   ) => {
     const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
       userIDs,
       title,
       messageText,
@@ -173,6 +202,8 @@ export default class PlatformRemote implements PlatformAPI {
 
   getThread = async (threadID: string): Promise<Thread> => {
     const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
       threadID,
     });
     const response = await this.fetchRemote(Api.GET_THREAD, body);
@@ -201,6 +232,8 @@ export default class PlatformRemote implements PlatformAPI {
     };
 
     const body = JSON.stringify({
+      userID: this.currentUser.id,
+      credential: this.credential,
       userMessage,
       threadID,
       content,
@@ -251,7 +284,12 @@ export default class PlatformRemote implements PlatformAPI {
   }
 
   initWebsocket = (wsUrl: string) => {
-    this.websocket = new WebSocket(wsUrl);
+    const userID = this.currentUser.id;
+    this.websocket = new WebSocket(wsUrl, {
+      headers: {
+        ["user-id"]: userID,
+      },
+    });
     this.websocket.onopen = () => {
       console.log("[platform-rest] connected to platform-rest-ws");
     };
@@ -259,19 +297,21 @@ export default class PlatformRemote implements PlatformAPI {
     // Manage incoming server events
     this.websocket.onmessage = (event) => {
       console.log("[platform-rest] recieved event");
-      const eventJSON = JSON.parse(event.data.toString());
+      const eventJSON: ServerEvent = JSON.parse(event.data.toString());
 
-      const serverEvent: StateSyncEvent = {
-        ...eventJSON,
-        entries: eventJSON.entries.map((entry) => {
-          return {
-            ...entry,
-            timestamp: new Date(entry.timestamp),
-          };
-        }),
-      };
+      if ("entries" in eventJSON) {
+        const serverEvent: StateSyncEvent = {
+          ...eventJSON,
+          entries: eventJSON.entries.map((entry) => {
+            return {
+              ...entry,
+              timestamp: new Date(entry.timestamp),
+            };
+          }),
+        };
 
-      this.eventHandler([serverEvent]);
+        this.eventHandler([serverEvent]);
+      }
     };
   };
 }
