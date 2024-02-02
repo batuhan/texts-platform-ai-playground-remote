@@ -1,4 +1,4 @@
-import { Message, Paginated, Thread } from "@textshq/platform-sdk";
+import { CurrentUser, ExtraProp, Message, Paginated, Thread } from "@textshq/platform-sdk";
 
 export type ResponseMessage = Omit<Message, "timestamp"> & {
   timestamp: string;
@@ -12,3 +12,7 @@ export type ResponseThread = Omit<
   timestamp: string;
   messages: Paginated<ResponseMessage>;
 };
+
+export interface LoginAPIResult extends ExtraProp {
+  currentUser: CurrentUser;
+}

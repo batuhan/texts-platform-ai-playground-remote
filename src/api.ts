@@ -19,11 +19,12 @@ import {
   Thread,
   ThreadFolderName,
   User,
+  UserID,
 } from "@textshq/platform-sdk";
 import { randomUUID as uuid } from "crypto";
 import { Api, DEFAULT_HEADERS } from "./constants";
 import WebSocket from "ws";
-import { ResponseMessage, ResponseThread } from "./types";
+import { LoginAPIResult, ResponseMessage, ResponseThread } from "./types";
 
 export default class PlatformRemote implements PlatformAPI {
   private baseURL: string = "";
@@ -32,7 +33,7 @@ export default class PlatformRemote implements PlatformAPI {
     username: "User",
     displayText: "User",
   };
-  private credential: string = "";
+  private extra: any = {};
   private eventHandler: OnServerEventCallback;
   private websocket: WebSocket;
 
@@ -40,10 +41,10 @@ export default class PlatformRemote implements PlatformAPI {
     if (session) {
       this.baseURL = session.baseURL;
       this.currentUser = session.currentUser;
-      this.credential = session.credential;
+      this.extra = session.extra;
       const url = new URL(session.baseURL);
       const wsUrl = `ws://${url.host}`;
-      this.initWebsocket(wsUrl);
+      this.initWebsocket(wsUrl, this.currentUser.id);
     }
   };
 
@@ -65,13 +66,15 @@ export default class PlatformRemote implements PlatformAPI {
       this.baseURL = baseURL.origin;
 
       const wsUrl = `ws://${baseURL.host}`;
-      this.initWebsocket(wsUrl);
-      const body = JSON.stringify({ creds: creds });
-      const { data }: { data: CurrentUser } = await this.fetchRemote(
+      const userID = uuid();
+      this.initWebsocket(wsUrl, userID);
+      const body = JSON.stringify({ creds, userID });
+      const { data }: { data: LoginAPIResult } = await this.fetchRemote(
         Api.LOGIN,
         body
       );
-      this.currentUser = data;
+      this.currentUser = data.currentUser;
+      this.extra = data.extra;
     } catch {
       return { type: "error", errorMessage: "Invalid credentials" };
     }
@@ -83,7 +86,7 @@ export default class PlatformRemote implements PlatformAPI {
     return {
       baseURL: this.baseURL,
       currentUser: this.currentUser,
-      credential: this.credential,
+      extra: this.extra,
     };
   };
 
@@ -94,7 +97,6 @@ export default class PlatformRemote implements PlatformAPI {
   searchUsers = async (typed: string) => {
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       typed,
     });
     const response = await this.fetchRemote(Api.SEARCH_USERS, body);
@@ -116,7 +118,6 @@ export default class PlatformRemote implements PlatformAPI {
 
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       inboxName,
       pagination,
     });
@@ -156,7 +157,6 @@ export default class PlatformRemote implements PlatformAPI {
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       threadID,
       pagination,
     });
@@ -187,7 +187,6 @@ export default class PlatformRemote implements PlatformAPI {
   ) => {
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       userIDs,
       title,
       messageText,
@@ -203,7 +202,6 @@ export default class PlatformRemote implements PlatformAPI {
   getThread = async (threadID: string): Promise<Thread> => {
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       threadID,
     });
     const response = await this.fetchRemote(Api.GET_THREAD, body);
@@ -233,7 +231,6 @@ export default class PlatformRemote implements PlatformAPI {
 
     const body = JSON.stringify({
       userID: this.currentUser.id,
-      credential: this.credential,
       userMessage,
       threadID,
       content,
@@ -283,8 +280,7 @@ export default class PlatformRemote implements PlatformAPI {
     });
   }
 
-  initWebsocket = (wsUrl: string) => {
-    const userID = this.currentUser.id;
+  initWebsocket = (wsUrl: string, userID: UserID) => {
     this.websocket = new WebSocket(wsUrl, {
       headers: {
         ["user-id"]: userID,
