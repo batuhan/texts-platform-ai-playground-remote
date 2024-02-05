@@ -37,14 +37,18 @@ export default class PlatformRemote implements PlatformAPI {
   private eventHandler: OnServerEventCallback;
   private websocket: WebSocket;
 
-  init = (session: SerializedSession) => {
+  init = async (session: SerializedSession) => {
     if (session) {
+      console.log("[platform-rest] initializing with session", session);
+
       this.baseURL = session.baseURL;
       this.currentUser = session.currentUser;
       this.extra = session.extra;
       const url = new URL(session.baseURL);
       const wsUrl = `ws://${url.host}`;
       this.initWebsocket(wsUrl, this.currentUser.id);
+      const body = JSON.stringify({ session });
+      await this.fetchRemote(Api.INIT, body);
     }
   };
 
@@ -66,9 +70,9 @@ export default class PlatformRemote implements PlatformAPI {
       this.baseURL = baseURL.origin;
 
       const wsUrl = `ws://${baseURL.host}`;
-      const userID = uuid();
-      this.initWebsocket(wsUrl, userID);
-      const body = JSON.stringify({ creds, userID });
+      const currentUserID = uuid();
+      this.initWebsocket(wsUrl, currentUserID);
+      const body = JSON.stringify({ creds, currentUserID });
       const { data }: { data: LoginAPIResult } = await this.fetchRemote(
         Api.LOGIN,
         body
@@ -96,7 +100,7 @@ export default class PlatformRemote implements PlatformAPI {
 
   searchUsers = async (typed: string) => {
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       typed,
     });
     const response = await this.fetchRemote(Api.SEARCH_USERS, body);
@@ -117,7 +121,7 @@ export default class PlatformRemote implements PlatformAPI {
     }
 
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       inboxName,
       pagination,
     });
@@ -142,6 +146,7 @@ export default class PlatformRemote implements PlatformAPI {
           hasMore: thread.messages.hasMore,
         },
       };
+
       return newThread;
     });
 
@@ -156,7 +161,7 @@ export default class PlatformRemote implements PlatformAPI {
 
   getMessages = async (threadID: string, pagination?: PaginationArg) => {
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       threadID,
       pagination,
     });
@@ -186,7 +191,7 @@ export default class PlatformRemote implements PlatformAPI {
     messageText?: string
   ) => {
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       userIDs,
       title,
       messageText,
@@ -201,7 +206,7 @@ export default class PlatformRemote implements PlatformAPI {
 
   getThread = async (threadID: string): Promise<Thread> => {
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       threadID,
     });
     const response = await this.fetchRemote(Api.GET_THREAD, body);
@@ -230,29 +235,13 @@ export default class PlatformRemote implements PlatformAPI {
     };
 
     const body = JSON.stringify({
-      userID: this.currentUser.id,
+      currentUserID: this.currentUser.id,
       userMessage,
       threadID,
       content,
       options,
     });
-    const response = await this.fetchRemote(Api.SEND_MESSAGE, body);
-
-    if (response.data) {
-      const responseMessage: Message = {
-        ...response.data,
-        timestamp: new Date(response.data.timestamp),
-      };
-
-      const event: ServerEvent = {
-        type: ServerEventType.STATE_SYNC,
-        objectName: "message",
-        mutationType: "upsert",
-        objectIDs: { threadID },
-        entries: [responseMessage],
-      };
-      this.eventHandler([event]);
-    }
+    this.fetchRemote(Api.SEND_MESSAGE, body);
 
     return [userMessage];
   };
@@ -301,7 +290,9 @@ export default class PlatformRemote implements PlatformAPI {
           entries: eventJSON.entries.map((entry) => {
             return {
               ...entry,
-              timestamp: new Date(entry.timestamp),
+              timestamp: entry.timestamp
+                ? new Date(entry.timestamp)
+                : new Date(),
             };
           }),
         };

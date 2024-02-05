@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 // import QRCode from 'qrcode.react'
 import type { AuthProps } from "@textshq/platform-sdk";
+import { PROVIDERS } from "./constants";
 
 export const Auth: React.FC<AuthProps> = ({ login }) => {
   const [baseURL, setBaseURL] = useState<string>("http://localhost:8080");
   const [label, setLabel] = useState<string>("Test");
-  const [credential, setCredential] = useState<string>("");
+  const [apiKey, setApiKey] = React.useState("");
+  const [selectedProvider, setSelectedProvider] = React.useState("default");
 
   const handleLogin = () => {
     if (login) {
-      login({ custom: { label, baseURL, credential } });
+      login({ custom: { label, baseURL, apiKey, selectedProvider } });
     }
   };
 
@@ -48,18 +50,75 @@ export const Auth: React.FC<AuthProps> = ({ login }) => {
         <div
           style={{
             width: "70%",
+            marginLeft: "auto",
+            marginRight: "auto",
           }}
         >
-          <label htmlFor="label" style={{ width: "90%" }}>
-            Credential (optional)
+          <label htmlFor="model">Provider</label>
+          <select
+            id="model"
+            style={{
+              width: "100%",
+              borderRadius: "8px",
+              height: "30px",
+              background: "transparent",
+              color: selectedProvider === "default" ? "#757575" : "white",
+              padding: "5px",
+              borderColor: "#343434",
+              outline: "none",
+            }}
+            value={selectedProvider}
+            onChange={(event) => setSelectedProvider(event.target.value)}
+          >
+            <option
+              value="default"
+              disabled
+              style={{
+                color: "#343434",
+                background: "#1c1c1c",
+                borderColor: "#343434",
+              }}
+              hidden
+            >
+              Select a provider
+            </option>
+            {PROVIDERS.map((provider) => (
+              <option
+                value={provider.id}
+                style={{
+                  color: "white",
+                  background: "#1c1c1c",
+                  borderColor: "#343434",
+                }}
+              >
+                {provider.fullName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div
+          style={{
+            width: "70%",
+          }}
+        >
+          <label htmlFor="api-key" style={{ width: "90%" }}>
+            API Key
           </label>
           <input
-            id="label"
+            id="api-key"
             type="text"
-            value={label}
-            onChange={(event) => setCredential(event.target.value)}
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
             style={{ width: "100%" }}
-            placeholder="A Key, Password, Access Token your Rest Server needs."
+            placeholder={
+              selectedProvider === "default"
+                ? "Your OpenAI API Key"
+                : `Your ${
+                    PROVIDERS.find(
+                      (provider) => provider.id === selectedProvider
+                    )?.fullName
+                  } API Key`
+            }
           />
         </div>
         <div
@@ -93,7 +152,7 @@ export const Auth: React.FC<AuthProps> = ({ login }) => {
             }}
             onClick={handleLogin}
           >
-            Login →
+            Start Chatting →
           </button>
         </div>
       </div>
