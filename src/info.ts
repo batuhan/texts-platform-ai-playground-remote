@@ -6,9 +6,9 @@ import {
 import { PLATFORM_ICON } from "./icons";
 
 const info: PlatformInfo = {
-  name: "platform-ai-playground-rest",
+  name: "platform-ai-playground-remote",
   version: "1.0.0",
-  displayName: "platform-ai-playground-rest",
+  displayName: "platform-ai-playground-remote",
   icon: PLATFORM_ICON,
   loginMode: "custom",
   deletionMode: MessageDeletionMode.UNSUPPORTED,

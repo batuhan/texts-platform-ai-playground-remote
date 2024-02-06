@@ -1,5 +1,5 @@
 {
-  "name": "@textshq/platform-remote-ai",
+  "name": "@textshq/platform-ai-playground-remote",
   "version": "0.1.0",
   "main": "dist/index.js",
   "scripts": {
