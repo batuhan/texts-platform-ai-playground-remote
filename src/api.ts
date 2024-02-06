@@ -284,20 +284,48 @@ export default class PlatformRemote implements PlatformAPI {
       console.log("[platform-rest] recieved event");
       const eventJSON: ServerEvent = JSON.parse(event.data.toString());
 
-      if ("entries" in eventJSON) {
-        const serverEvent: StateSyncEvent = {
-          ...eventJSON,
-          entries: eventJSON.entries.map((entry) => {
-            return {
-              ...entry,
-              timestamp: entry.timestamp
-                ? new Date(entry.timestamp)
-                : new Date(),
-            };
-          }),
-        };
-
-        this.eventHandler([serverEvent]);
+      if ("mutationType" in eventJSON) {
+        if (eventJSON.mutationType === "upsert") {
+          const serverEvent: StateSyncEvent = {
+            ...eventJSON,
+            entries: eventJSON.entries.map((entry) => {
+              if (typeof entry === "object") {
+                if ("timestamp" in entry) {
+                  return {
+                    ...entry,
+                    timestamp:
+                      entry.timestamp && typeof entry.timestamp !== "boolean"
+                        ? new Date(entry.timestamp)
+                        : new Date(),
+                  };
+                } else {
+                  return entry;
+                }
+              } else {
+                return entry;
+              }
+            }),
+          };
+          this.eventHandler([serverEvent]);
+        } else if (eventJSON.mutationType === "update") {
+          const serverEvent: StateSyncEvent = {
+            ...eventJSON,
+            entries: eventJSON.entries.map((entry) => {
+              if ("timestamp" in entry) {
+                return {
+                  ...entry,
+                  timestamp:
+                    entry.timestamp && typeof entry.timestamp !== "boolean"
+                      ? new Date(entry.timestamp)
+                      : new Date(),
+                };
+              } else {
+                return entry;
+              }
+            }),
+          };
+          this.eventHandler([serverEvent]);
+        }
       }
     };
   };
