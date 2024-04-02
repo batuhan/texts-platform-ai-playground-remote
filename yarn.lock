@@ -1725,31 +1725,38 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@textshq/platform-sdk@file: ~/../../platform-sdk/::locator=%40textshq%2Fplatform-x%40workspace%3A.":
-  version: 0.4.4
-  resolution: "@textshq/platform-sdk@file: ~/../../platform-sdk/# ~/../../platform-sdk/::hash=899edc&locator=%40textshq%2Fplatform-x%40workspace%3A."
-  dependencies:
-    emoji-regex: ^10.1.0
-    qrcode.react: ^3.1.0
-  checksum: b22f0a55ea7582da8d97306c0b81d10e5f0a8d4ff20e41516861dc84eef779d80606bf92653761fe26c0db0b8291d067225818a5980b9055b96a51befd38bd0c
-  languageName: node
-  linkType: hard
-
-"@textshq/platform-x@workspace:.":
+"@textshq/platform-ai-playground-remote@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@textshq/platform-x@workspace:."
+  resolution: "@textshq/platform-ai-playground-remote@workspace:."
   dependencies:
     "@textshq/eslint-config": "https://github.com/TextsHQ/eslint-config#main"
-    "@textshq/platform-sdk": "file: ~/../../platform-sdk/"
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main"
     "@types/eslint": ^8.21.3
     "@types/node": ^18.15.8
     "@types/ws": ^8.5.10
     eslint: ^8.36.0
-    react: "file: ~/../../react-global-shim-main/"
+    react: "https://github.com/TextsHQ/react-global-shim#main"
     typescript: ^5.0.2
     ws: ^8.16.0
   languageName: unknown
   linkType: soft
+
+"@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk#main":
+  version: 0.4.4
+  resolution: "@textshq/platform-sdk@https://github.com/TextsHQ/platform-sdk.git#commit=69d1d78006b09323c4e5f6b6e512c7ce20f9c456"
+  dependencies:
+    emoji-regex: ^10.1.0
+    lodash: ^4.17.21
+    qrcode.react: ^3.1.0
+    ws: ^8.15.1
+  dependenciesMeta:
+    lodash:
+      optional: true
+    ws:
+      optional: true
+  checksum: a401adddff3dc5d9d161015243dc1b9800325d7020f0705c0535cb9d2f07b60a569d1b880ee952f0fc2e04466c9e21c3789b8500c815a5f1e53dfe8ebb8108d0
+  languageName: node
+  linkType: hard
 
 "@types/eslint@npm:^8.21.3":
   version: 8.21.3
@@ -4276,10 +4283,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@file: ~/../../react-global-shim-main/::locator=%40textshq%2Fplatform-x%40workspace%3A.":
+"react@https://github.com/TextsHQ/react-global-shim#main":
   version: 17.0.0
-  resolution: "react@file: ~/../../react-global-shim-main/# ~/../../react-global-shim-main/::hash=e09bbf&locator=%40textshq%2Fplatform-x%40workspace%3A."
-  checksum: 766ef7332d679cffdc5b8732af3f6b90db96c3e396cddfef343268a4cef3d1f2f509b0f21fc92b656a9da3a430e8b4fa9718a42f9f0389c08744c370b989a204
+  resolution: "react@https://github.com/TextsHQ/react-global-shim.git#commit=270144ee4450c3e5ce94029bdff5b3b2ccef47a4"
+  checksum: 888255113863a999bd2826bb5a25f5765778cb5ce97a1f6b1de1410b140b6f8b47165d6307763756222abf80557232809d8fa44d3865ef592f07b6d35613ecf3
   languageName: node
   linkType: hard
 
@@ -4877,7 +4884,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:^8.16.0":
+"ws@npm:^8.15.1, ws@npm:^8.16.0":
   version: 8.16.0
   resolution: "ws@npm:8.16.0"
   peerDependencies:

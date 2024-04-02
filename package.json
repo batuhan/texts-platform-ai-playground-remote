@@ -8,8 +8,8 @@
     "lint": "eslint src --ext ts,tsx,js,jsx --cache"
   },
   "dependencies": {
-    "@textshq/platform-sdk": "file: ~/../../platform-sdk/",
-    "react": "file: ~/../../react-global-shim-main/",
+    "@textshq/platform-sdk": "https://github.com/TextsHQ/platform-sdk#main",
+    "react": "https://github.com/TextsHQ/react-global-shim#main",
     "ws": "^8.16.0"
   },
   "devDependencies": {
